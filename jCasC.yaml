@@ -1,0 +1,20 @@
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+          - string:
+              scope: GLOBAL
+              id: aws-credentials-id
+              description: "AWS Access Key"
+              secret: "${AWS_ACCESS_KEY_ID}"
+          - string:
+              scope: GLOBAL
+              id: aws-secret-key-id
+              description: "AWS Secret Key"
+              secret: "${AWS_SECRET_ACCESS_KEY}"
+          - file:
+              scope: GLOBAL
+              id: k8s-kubeconfig
+              description: "Kubeconfig file"
+              fileName: "config"
+              secretBytes: "${KUBECONFIG_FILE_CONTENT}"
