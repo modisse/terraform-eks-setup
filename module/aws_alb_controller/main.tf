@@ -37,7 +37,7 @@ resource "kubernetes_service_account" "service-account" {
   }
 }
 
-/*resource "helm_release" "lb" {
+resource "helm_release" "lb" {
   depends_on = [kubernetes_service_account.service-account]
 
   name       = "aws-load-balancer-controller"
@@ -75,4 +75,4 @@ resource "kubernetes_service_account" "service-account" {
     value = var.cluster_name
   }
 }
-*/
+
