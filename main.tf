@@ -148,9 +148,6 @@ resource "aws_iam_policy" "ecr_pull_policy" {
   description = "Policy to allow EKS nodes to pull from ECR"
   policy      = data.aws_iam_policy_document.ecr_pull_policy.json
 
-  lifecycle {
-    ignore_changes = [name]
-  }
 }
 
 # AWS ALB Controller Module
