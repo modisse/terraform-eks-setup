@@ -45,12 +45,16 @@ pipeline {
                                 // Update kubeconfig if applying
                                 def clusterName = sh(script: 'terraform output -raw cluster_name', returnStdout: true).trim()
                                 sh "aws eks --region ${env.AWS_REGION} update-kubeconfig --name ${clusterName}"
-                                sh "export KUBECONFIG=~/.kube/config"
+                                
+                                // Set KUBECONFIG environment variable
+                                env.KUBECONFIG = "${env.WORKSPACE}/.kube/config"
+                                sh "mkdir -p ${env.WORKSPACE}/.kube"
+                                sh "aws eks --region ${env.AWS_REGION} update-kubeconfig --name ${clusterName} --kubeconfig ${env.KUBECONFIG}"
                                 
                                 // Apply Helm release
                                 sh """
                                     helm repo add eks https://aws.github.io/eks-charts
-                                    helm install aws-load-balancer-controller eks/aws-load-balancer-controller -n kube-system --set clusterName=${clusterName} --set serviceAccount.create=false --set serviceAccount.name=aws-load-balancer-controller --set region=${env.AWS_REGION} --set vpcId=\$(terraform output -raw vpc_id)
+                                    helm install aws-load-balancer-controller eks/aws-load-balancer-controller -n kube-system --kubeconfig ${env.KUBECONFIG} --set clusterName=${clusterName} --set serviceAccount.create=false --set serviceAccount.name=aws-load-balancer-controller --set region=${env.AWS_REGION} --set vpcId=\$(terraform output -raw vpc_id)
                                 """
                             } catch (Exception e) {
                                 error "Deployment failed: ${e.message}"
