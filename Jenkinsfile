@@ -69,5 +69,5 @@ pipeline {
                 +1 (313) 413-1477''', cc: 'dorisakudo09@gmail.com', from: '', replyTo: '', subject: 'Terraform Infra deployment completed!!!', to: 'dorisakudo09@gmail.com'
             }
         }
-    
+    }
 }
