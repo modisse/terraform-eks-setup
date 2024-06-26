@@ -1,7 +1,7 @@
 pipeline {
-    agent { node { label "terraform-node" } } 
+    agent { node { label "terraform-node" } }
     parameters {
-        choice(name: 'deploy_choice', choices:['apply','destroy'], description:'The deployment type')
+        choice(name: 'deploy_choice', choices: ['apply', 'destroy'], description: 'The deployment type')
     }
     environment {
         EMAIL_TO = 'dorisakudo09@gmail.com'
@@ -25,18 +25,18 @@ pipeline {
                 message "Should we proceed?"
                 ok "Yes, we should."
                 parameters {
-                    choice(name: 'Manual_Approval', choices: ['Approve','Reject'], description: 'Approve or Reject the deployment')
+                    choice(name: 'Manual_Approval', choices: ['Approve', 'Reject'], description: 'Approve or Reject the deployment')
                 }
             }
             steps {
                 echo "Deployment ${Manual_Approval}"
-            }          
+            }
         }
         stage('4. Terraform Deploy') {
             steps {
                 echo "Terraform ${params.deploy_choice} phase"
                 // Ensure the use of the correct AWS credentials
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']]) {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'your-aws-credentials-id']]) {
                     script {
                         if (params.deploy_choice == 'apply') {
                             try {
@@ -44,7 +44,12 @@ pipeline {
                                 
                                 // Update kubeconfig if applying
                                 def clusterName = sh(script: 'terraform output -raw cluster_name', returnStdout: true).trim()
-                                sh "aws eks --region ${env.AWS_REGION} update-kubeconfig --name ${clusterName} && export KUBE_CONFIG_PATH=~/.kube/config"
+                                sh "aws eks --region ${env.AWS_REGION} update-kubeconfig --name ${clusterName}"
+                                sh "export KUBECONFIG=~/.kube/config"
+                                
+                                // Apply Helm release
+                                sh "helm repo add eks https://aws.github.io/eks-charts"
+                                sh "helm install aws-load-balancer-controller eks/aws-load-balancer-controller -n kube-system --set clusterName=${clusterName} --set serviceAccount.create=false --set serviceAccount.name=aws-load-balancer-controller --set region=${env.AWS_REGION} --set vpcId=$(terraform output -raw vpc_id)"
                             } catch (Exception e) {
                                 error "Deployment failed: ${e.message}"
                             }
@@ -62,7 +67,7 @@ pipeline {
                 Thanks,
                 DJ Technologies,
                 +1 (313) 413-1477''', cc: 'dorisakudo09@gmail.com', from: '', replyTo: '', subject: 'Terraform Infra deployment completed!!!', to: 'dorisakudo09@gmail.com'
-            }    
+            }
         }
-    }       
+    }
 }
