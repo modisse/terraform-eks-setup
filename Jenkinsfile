@@ -36,7 +36,7 @@ pipeline {
             steps {
                 echo "Terraform ${params.deploy_choice} phase"
                 // Ensure the use of the correct AWS credentials
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'your-aws-credentials-id']]) {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']]) {
                     script {
                         if (params.deploy_choice == 'apply') {
                             try {
