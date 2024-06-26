@@ -5,21 +5,22 @@ pipeline {
     }
     environment {
         EMAIL_TO = 'dorisakudo09@gmail.com'
+        AWS_REGION = 'eu-west-2'
     }
     stages {
-        stage('1.Terraform init') {
+        stage('1. Terraform Init') {
             steps {
-                echo 'terraform init phase'
+                echo 'Terraform init phase'
                 sh 'terraform init'
             }
         }
-        stage('2.Terraform plan') {
+        stage('2. Terraform Plan') {
             steps {
-                echo 'terraform plan phase'
-                sh 'AWS_REGION=eu-west-2 terraform plan'
+                echo 'Terraform plan phase'
+                sh 'terraform plan'
             }
         }
-        stage('3.Manual Approval') {
+        stage('3. Manual Approval') {
             input {
                 message "Should we proceed?"
                 ok "Yes, we should."
@@ -34,20 +35,27 @@ pipeline {
         stage('4. Terraform Deploy') {
             steps {
                 echo "Terraform ${params.deploy_choice} phase"
-                sh "AWS_REGION=eu-west-2 terraform ${params.deploy_choice} -target=module.vpc -target=module.eks --auto-approve"
-                
-                // Conditionally update kubeconfig only if applying
-                script {
-                    if (params.deploy_choice == 'apply') {
-                        def clusterName = sh(script: 'terraform output -raw cluster_name', returnStdout: true).trim()
-                        sh "aws eks --region eu-west-2 update-kubeconfig --name ${clusterName} && export KUBE_CONFIG_PATH=~/.kube/config"
+                // Ensure the use of the correct AWS credentials
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'your-aws-credentials-id']]) {
+                    script {
+                        if (params.deploy_choice == 'apply') {
+                            try {
+                                sh "terraform ${params.deploy_choice} --auto-approve"
+                                
+                                // Update kubeconfig if applying
+                                def clusterName = sh(script: 'terraform output -raw cluster_name', returnStdout: true).trim()
+                                sh "aws eks --region ${env.AWS_REGION} update-kubeconfig --name ${clusterName} && export KUBE_CONFIG_PATH=~/.kube/config"
+                            } catch (Exception e) {
+                                error "Deployment failed: ${e.message}"
+                            }
+                        } else {
+                            sh "terraform ${params.deploy_choice} --auto-approve"
+                        }
                     }
                 }
-                
-                sh "AWS_REGION=eu-west-2 terraform ${params.deploy_choice} --auto-approve"
             }
         }
-        stage ('5. Email Notification') {
+        stage('5. Email Notification') {
             steps {
                 mail bcc: 'dorisakudo09@gmail.com', body: '''Terraform deployment is completed.
                 Let me know if the changes look okay.
