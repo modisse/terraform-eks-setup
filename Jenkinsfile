@@ -36,7 +36,7 @@ pipeline {
             steps {
                 echo "Terraform ${params.deploy_choice} phase"
                 // Ensure the use of the correct AWS credentials
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'your-aws-credentials-id']]) {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']]) {
                     script {
                         if (params.deploy_choice == 'apply') {
                             try {
@@ -48,8 +48,10 @@ pipeline {
                                 sh "export KUBECONFIG=~/.kube/config"
                                 
                                 // Apply Helm release
-                                sh "helm repo add eks https://aws.github.io/eks-charts"
-                                sh "helm install aws-load-balancer-controller eks/aws-load-balancer-controller -n kube-system --set clusterName=${clusterName} --set serviceAccount.create=false --set serviceAccount.name=aws-load-balancer-controller --set region=${env.AWS_REGION} --set vpcId=$(terraform output -raw vpc_id)"
+                                sh """
+                                    helm repo add eks https://aws.github.io/eks-charts
+                                    helm install aws-load-balancer-controller eks/aws-load-balancer-controller -n kube-system --set clusterName=${clusterName} --set serviceAccount.create=false --set serviceAccount.name=aws-load-balancer-controller --set region=${env.AWS_REGION} --set vpcId=\$(terraform output -raw vpc_id)
+                                """
                             } catch (Exception e) {
                                 error "Deployment failed: ${e.message}"
                             }
