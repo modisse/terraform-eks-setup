@@ -60,6 +60,7 @@ data "aws_eks_cluster_auth" "cluster" {
 
 # Kubernetes Provider Configuration
 provider "kubernetes" {
+  alias                  = "eks"
   host                   = data.aws_eks_cluster.cluster.endpoint
   token                  = data.aws_eks_cluster_auth.cluster.token
   cluster_ca_certificate = base64decode(data.aws_eks_cluster.cluster.certificate_authority.0.data)
@@ -147,25 +148,22 @@ resource "aws_iam_policy" "ecr_pull_policy" {
   name        = "ECRPullPolicy"
   description = "Policy to allow EKS nodes to pull from ECR"
   policy      = data.aws_iam_policy_document.ecr_pull_policy.json
-
 }
 
-# AWS ALB Controller Module
-module "aws_alb_controller" {
-  source            = "./module/aws_alb_controller"
-  env_name          = "education"
-  oidc_provider_arn = module.eks.oidc_provider_arn
-  main-region       = var.region
-  vpc_id            = module.vpc.vpc_id
-  cluster_name      = local.cluster_name
+# ALB Ingress Controller Module
+module "alb_ingress_controller" {
+  source  = "iplabs/alb-ingress-controller/kubernetes"
+  version = "3.1.0"
 
   providers = {
-    kubernetes = kubernetes
+    kubernetes = kubernetes.eks
   }
 
-  kubernetes_host                   = data.aws_eks_cluster.cluster.endpoint
-  kubernetes_token                  = data.aws_eks_cluster_auth.cluster.token
-  kubernetes_cluster_ca_certificate = base64decode(data.aws_eks_cluster.cluster.certificate_authority.0.data)
+  k8s_cluster_type = "eks"
+  k8s_namespace    = "kube-system"
+
+  aws_region_name  = var.region
+  k8s_cluster_name = module.eks.cluster_name
 }
 
 # Outputs
