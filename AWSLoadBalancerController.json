@@ -214,6 +214,13 @@
                 "elasticloadbalancing:ModifyRule"
             ],
             "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "elasticloadbalancing:AddTags"
+            ],
+            "Resource": "*"
         }
     ]
 }
